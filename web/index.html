@@ -1,38 +1,132 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
-  <base href="$FLUTTER_BASE_HREF">
-
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="record_call">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>record_call</title>
-  <link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Perekam Jarak Jauh</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #fff; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; color: #4CAF50; }
+        .control-panel { background: #1e1e1e; padding: 30px; border-radius: 12px; text-align: center; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .status { font-size: 1.2em; margin-bottom: 20px; font-weight: bold; }
+        .status.idle { color: #aaa; }
+        .status.recording { color: #f44336; animation: blink 1.5s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+        button { border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 30px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-start { background-color: #f44336; color: white; }
+        .btn-start:hover { background-color: #d32f2f; }
+        .btn-stop { background-color: #ffffff; color: #f44336; }
+        .btn-stop:hover { background-color: #e0e0e0; }
+        .records-list { background: #1e1e1e; padding: 20px; border-radius: 12px; }
+        .record-item { background: #2a2a2a; padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .record-info { flex: 1; }
+        .record-date { font-size: 0.9em; color: #aaa; }
+        audio { height: 40px; margin-left: 20px; }
+    </style>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+    <div class="container">
+        <h1>🎙️ Cloud Remote Dashboard</h1>
+        
+        <div class="control-panel">
+            <div id="statusText" class="status idle">Status: Menunggu (Idle)</div>
+            <button id="btnAction" class="btn-start" onclick="toggleRecord()">MULAI REKAMAN</button>
+        </div>
+
+        <div class="records-list">
+            <h2>Daftar Rekaman Tersimpan</h2>
+            <div id="recordsContainer">
+                <p style="text-align: center; color: #777;">Belum ada rekaman di cloud.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (Modular) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB1j6BOHrD4IUFhXACHYDfEPpWoYfG7c4w",
+            authDomain: "record-call-app.firebaseapp.com",
+            projectId: "record-call-app",
+            storageBucket: "record-call-app.firebasestorage.app",
+            messagingSenderId: "762309707003",
+            appId: "1:762309707003:web:3c388835e74f5ab9789c5e"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        
+        const cmdRef = ref(db, 'remote_control/command');
+        const recordsRef = ref(db, 'records');
+
+        let isRecording = false;
+
+        // Listen to phone status
+        onValue(cmdRef, (snapshot) => {
+            const status = snapshot.val();
+            const btn = document.getElementById('btnAction');
+            const statusText = document.getElementById('statusText');
+
+            if (status === 'RECORDING' || status === 'START') {
+                isRecording = true;
+                btn.className = 'btn-stop';
+                btn.innerText = 'HENTIKAN REKAMAN';
+                statusText.className = 'status recording';
+                statusText.innerText = '🔴 SEDANG MEREKAM DI HP...';
+            } else {
+                isRecording = false;
+                btn.className = 'btn-start';
+                btn.innerText = 'MULAI REKAMAN';
+                statusText.className = 'status idle';
+                statusText.innerText = 'Status: Menunggu (Idle)';
+            }
+        });
+
+        // Listen to saved records
+        onValue(recordsRef, (snapshot) => {
+            const container = document.getElementById('recordsContainer');
+            const data = snapshot.val();
+            
+            if (!data) {
+                container.innerHTML = '<p style="text-align: center; color: #777;">Belum ada rekaman di cloud.</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            // Convert object to array and sort by newest
+            const recordsArray = Object.keys(data).map(key => ({
+                id: key,
+                ...data[key]
+            })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            recordsArray.forEach(record => {
+                const date = new Date(record.timestamp).toLocaleString('id-ID');
+                const dur = record.duration ? `${record.duration} detik` : 'Tidak diketahui';
+                
+                const html = `
+                    <div class="record-item">
+                        <div class="record-info">
+                            <strong>${record.fileName}</strong><br>
+                            <span class="record-date">${date} • Durasi: ${dur}</span>
+                        </div>
+                        <audio controls src="${record.downloadUrl}"></audio>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        });
+
+        window.toggleRecord = function() {
+            if (isRecording) {
+                set(cmdRef, 'STOP');
+            } else {
+                set(cmdRef, 'START');
+            }
+        };
+    </script>
 </body>
 </html>

@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'screens/home_screen.dart';
-import 'services/web_server.dart';
+import 'services/record_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('id_ID', null);
   
-  // Inisialisasi Web Server
-  await LocalWebServer().startServer();
+  // Inisialisasi Firebase
+  await Firebase.initializeApp();
+  
+  // Mulai mendengarkan perintah dari Firebase Cloud
+  RecordService().listenToCloudCommands();
   
   runApp(const CallRecorderApp());
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "762309707003",
+    "project_id": "record-call-app",
+    "storage_bucket": "record-call-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:762309707003:android:af747d6f18070917789c5e",
+        "android_client_info": {
+          "package_name": "com.recordcall.record_call"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6bIhngWsQ_M0NOA-LhU1Hez0-8IG5paQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
